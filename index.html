@@ -295,13 +295,12 @@ Rules:
 - Return ONLY the JSON object, nothing else`;
 
   try {
-    const res = await fetch('https://estate-scout-proxy.workers.dev', {
+    const res = await fetch('https://quiet-queen-9d2a.rwfreeman2010.workers.dev/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-allow-browser': 'true'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
@@ -450,4 +449,3 @@ updateBudget();
 </script>
 </body>
 </html>
-
