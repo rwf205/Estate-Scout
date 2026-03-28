@@ -114,7 +114,6 @@ input:focus{border-color:var(--gold-dim)}
 .btn-track:hover{border-color:var(--gold-dim);color:var(--gold)}
 .btn-track.tracked{border-color:var(--green);color:var(--green)}
 
-/* Expanded Watchlist */
 .wl-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;animation:fadeUp .3s ease forwards}
 .wl-card-head{padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .wl-card-title{flex:1;font-family:'Playfair Display',serif;font-size:14px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -128,7 +127,6 @@ input:focus{border-color:var(--gold-dim)}
 .btn-rm:hover{border-color:var(--red);color:var(--red)}
 .wl-summary{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:8px;text-align:right}
 
-/* History */
 .auction-group{margin-bottom:20px}
 .auction-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.2s;user-select:none}
 .auction-header:hover{border-color:var(--gold-dim)}
@@ -177,8 +175,9 @@ input:focus{border-color:var(--gold-dim)}
     <button class="tab" id="tab-history" onclick="showTab('history')">📋 History <span class="tab-count" id="cnt-history">0</span></button>
   </div>
 
-  <!-- ANALYZE -->
+  <!-- ANALYZE TAB -->
   <div class="tab-panel active" id="panel-analyze">
+
     <div class="setup-panel" id="setupPanel">
       <h3>🔑 API Key Required</h3>
       <p>Enter your Anthropic API key. Stored only in your browser — never sent anywhere except directly to Anthropic.</p>
@@ -224,16 +223,16 @@ input:focus{border-color:var(--gold-dim)}
         <input type="text" id="lotUrl" placeholder="https://www.liveauctioneers.com/item/..." onkeydown="if(event.key==='Enter')analyzeLot()">
         <button class="btn-analyze" id="analyzeBtn" onclick="analyzeLot()">⚡ Analyze Lot</button>
       </div>
-      <div class="hint">Supports: liveauctioneers.com · bidrustbelt.com</div>
+      <div class="hint">Supports: liveauctioneers.com · bidrustbelt.com · Reads full lot description</div>
       <div class="lbar" id="lbar"></div>
-      <div class="ltxt" id="ltxt">Analyzing lot and researching resale value...</div>
+      <div class="ltxt" id="ltxt">Fetching lot page and analyzing...</div>
       <div class="errmsg" id="errmsg"></div>
     </div>
 
     <div id="resultsArea"></div>
   </div>
 
-  <!-- WATCHLIST -->
+  <!-- WATCHLIST TAB -->
   <div class="tab-panel" id="panel-watchlist">
     <div style="display:flex;align-items:center;margin-bottom:16px;gap:12px">
       <div class="sec-hdr" style="flex:1;margin:0">Watchlist</div>
@@ -243,7 +242,7 @@ input:focus{border-color:var(--gold-dim)}
     <div class="wl-summary" id="wlSummary"></div>
   </div>
 
-  <!-- HISTORY -->
+  <!-- HISTORY TAB -->
   <div class="tab-panel" id="panel-history">
     <div style="display:flex;align-items:center;margin-bottom:16px;gap:12px">
       <div class="sec-hdr" style="flex:1;margin:0">Auction History</div>
@@ -259,14 +258,14 @@ input:focus{border-color:var(--gold-dim)}
 const WORKER = 'https://quiet-queen-9d2a.rwfreeman2010.workers.dev/';
 let watchlist = [], committed = 0, currentSession = null, sessionLotCount = 0;
 
-// Storage
+// ── Storage ──────────────────────────────────────────
 function getHistory(){ try{return JSON.parse(localStorage.getItem('es_history')||'[]');}catch{return[];} }
 function saveHistory(e){ const h=getHistory(); h.unshift(e); localStorage.setItem('es_history',JSON.stringify(h.slice(0,500))); }
 function clearHistory(){ localStorage.removeItem('es_history'); renderHistory(); updateCounts(); showToast('History cleared'); }
 function saveWL(){ localStorage.setItem('es_wl',JSON.stringify(watchlist)); }
 function loadWL(){ try{watchlist=JSON.parse(localStorage.getItem('es_wl')||'[]');}catch{watchlist=[];} committed=watchlist.reduce((s,i)=>s+(i.recommendedMaxBid||0),0); }
 
-// Tabs
+// ── Tabs ─────────────────────────────────────────────
 function showTab(n){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -282,7 +281,7 @@ function updateCounts(){
   document.getElementById('cnt-history').textContent=getHistory().length;
 }
 
-// API Key
+// ── API Key ──────────────────────────────────────────
 function saveKey(){
   const k=document.getElementById('apiKeyInput').value.trim();
   if(!k.startsWith('sk-ant-')){ document.getElementById('keyStatus').innerHTML='<span class="key-missing">⚠ Key should start with sk-ant-</span>'; return; }
@@ -300,7 +299,7 @@ function checkKeyStatus(){
   }
 }
 
-// Session
+// ── Session ──────────────────────────────────────────
 function startSession(){
   const name=document.getElementById('auctionNameInput').value.trim();
   if(!name){ showToast('Please enter an auction name'); return; }
@@ -344,7 +343,7 @@ function loadSession(){
   }catch{}
 }
 
-// Budget
+// ── Budget ───────────────────────────────────────────
 function updateBudget(){
   const t=parseFloat(document.getElementById('budgetTotal').value)||0;
   const r=Math.max(0,t-committed);
@@ -354,19 +353,20 @@ function updateBudget(){
   document.getElementById('barFill').style.width=Math.min(100,pct)+'%';
 }
 
-// UI
+// ── UI helpers ───────────────────────────────────────
 function setLoading(on){ document.getElementById('lbar').classList.toggle('on',on); document.getElementById('ltxt').classList.toggle('on',on); document.getElementById('analyzeBtn').disabled=on; document.getElementById('errmsg').classList.remove('on'); }
 function showErr(msg){ const e=document.getElementById('errmsg'); e.textContent=msg; e.classList.add('on'); }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// Analyze
+// ── Analyze ──────────────────────────────────────────
 async function analyzeLot(){
   const url=document.getElementById('lotUrl').value.trim();
   const apiKey=getKey();
   if(!apiKey){ showErr('Please save your Anthropic API key first.'); return; }
   if(!url){ showErr('Please paste a lot URL.'); return; }
   if(!url.includes('liveauctioneers.com')&&!url.includes('bidrustbelt.com')){ showErr('URL must be from liveauctioneers.com or bidrustbelt.com'); return; }
+
   setLoading(true);
   const budget=parseFloat(document.getElementById('budgetTotal').value)||500;
   const remaining=Math.max(0,budget-committed);
@@ -377,20 +377,28 @@ async function analyzeLot(){
 Lot URL: ${url}
 Platform: ${platform}
 
-The item name is in the URL slug. Use it plus your knowledge of antiques, collectibles, and secondhand markets to assess this lot. Be conservative — Northeast Ohio market.
+The Cloudflare Worker has fetched the actual lot page and appended its content below. Use the full lot description, item names, brands, condition notes, and any other details to make an accurate assessment. Be specific — reference actual brands, materials, and items mentioned in the description.
 
-Respond with ONLY a valid JSON object, no markdown, no backticks:
+Be conservative with resale estimates for the Northeast Ohio market.
 
-{"title":"item title from URL","platform":"${platform}","currentBid":0,"estimatedResaleLow":0,"estimatedResaleHigh":0,"recommendedMaxBid":0,"verdict":"GO","verdictReason":"one sentence","roiPercent":0,"keyFactors":"2-3 sentences on value drivers or risks","bestResaleChannel":"eBay or Etsy or Facebook Marketplace or Local auction","shippingNote":"Easy/Moderate/Difficult — brief reason","budgetNote":"one sentence on fit within $${remaining} remaining"}
+Respond with ONLY a valid JSON object, no markdown, no backticks, no extra text:
 
-Rules: verdict = GO, CAUTION, or PASS. recommendedMaxBid = hammer price before 22% premium. roiPercent = round(((low+high)/2 - recommendedMaxBid*1.22)/(recommendedMaxBid*1.22)*100). Return ONLY the JSON.`;
+{"title":"accurate title based on actual lot description","platform":"${platform}","currentBid":0,"estimatedResaleLow":0,"estimatedResaleHigh":0,"recommendedMaxBid":0,"verdict":"GO","verdictReason":"one sentence referencing specific items","roiPercent":0,"keyFactors":"2-3 sentences referencing specific brands/items/conditions from the description","bestResaleChannel":"eBay or Etsy or Facebook Marketplace or Local auction","shippingNote":"Easy/Moderate/Difficult — brief reason","budgetNote":"one sentence on fit within $${remaining} remaining"}
+
+Rules: verdict = GO, CAUTION, or PASS. recommendedMaxBid = hammer price before 22% buyer premium. roiPercent = round(((low+high)/2 - recommendedMaxBid*1.22)/(recommendedMaxBid*1.22)*100). Return ONLY the JSON.`;
 
   try{
     const res=await fetch(WORKER,{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}],
+        lotUrl: url
+      })
     });
+
     if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.error?.message||'API error '+res.status); }
     const data=await res.json();
     let text='';
@@ -399,20 +407,20 @@ Rules: verdict = GO, CAUTION, or PASS. recommendedMaxBid = hammer price before 2
     if(s===-1||e===-1) throw new Error('No JSON in response');
     const d=JSON.parse(text.slice(s,e+1));
 
-    // Save to history
     saveHistory({...d,url,analyzedAt:new Date().toISOString(),sessionId:currentSession?.id||null,sessionName:currentSession?.name||'Unsorted',sessionClosed:false});
     sessionLotCount++;
     updateCounts();
     setLoading(false);
     renderCard(d,url);
     document.getElementById('lotUrl').value='';
+
   }catch(err){
     setLoading(false);
     showErr('Analysis failed: '+err.message);
   }
 }
 
-// Render lot card
+// ── Render Card ──────────────────────────────────────
 function renderCard(d,url){
   const id='lot_'+Date.now();
   const vc=d.verdict==='GO'?'v-go':d.verdict==='CAUTION'?'v-cau':'v-pass';
@@ -459,7 +467,7 @@ function renderCard(d,url){
   area.insertBefore(card,area.querySelector('.sec-hdr').nextSibling);
 }
 
-// Watchlist
+// ── Watchlist ────────────────────────────────────────
 function trackLot(cardId,btn,dj,url){
   if(btn.classList.contains('tracked')) return;
   const d=JSON.parse(dj.replace(/\\u003c/g,'<'));
@@ -507,12 +515,11 @@ function renderWL(){
 function rmWL(i){ committed=Math.max(0,committed-(watchlist[i].recommendedMaxBid||0)); watchlist.splice(i,1); saveWL(); updateBudget(); updateCounts(); renderWL(); }
 function clearWL(){ if(!confirm('Clear entire watchlist?')) return; watchlist=[];committed=0; saveWL();updateBudget();updateCounts();renderWL(); }
 
-// History
+// ── History ──────────────────────────────────────────
 function renderHistory(){
   const area=document.getElementById('historyArea');
   const history=getHistory();
   if(!history.length){ area.innerHTML='<div class="empty">No history yet.<br>Analyzed lots are saved here automatically, grouped by auction.</div>'; return; }
-
   const groups={}, order=[];
   history.forEach(e=>{
     const key=e.sessionId||'unsorted';
@@ -523,7 +530,6 @@ function renderHistory(){
     if(e.sessionClosed) groups[key].closed=true;
     groups[key].lots.push(e);
   });
-
   area.innerHTML='';
   order.forEach((key,gi)=>{
     const g=groups[key];
@@ -572,7 +578,7 @@ function toggleGroup(id,header){
   header.classList.toggle('expanded',!isOpen);
 }
 
-// Init
+// ── Init ─────────────────────────────────────────────
 checkKeyStatus(); loadSession(); loadWL(); updateBudget(); updateCounts();
 </script>
 </body>
